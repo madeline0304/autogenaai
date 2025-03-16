@@ -9,12 +9,14 @@ from autogen import AssistantAgent, UserProxyAgent
 import autogen
 
 # Load environment variables
-load_dotenv()
+load_dotenv(".env")
+
+OPENAI_API_KEY = "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"
 SERPER_API_URL = "https://google.serper.dev/search"
 SERPER_API_KEY = "12c9456f7134b76c22d89015fde14eef33cfd208"
 
 if not os.getenv("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = "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"
+    os.environ["OPENAI_API_KEY"] = "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"
 
 # Streamlit UI
 st.title("🔹 AI-Powered Sales Outreach Generator")
