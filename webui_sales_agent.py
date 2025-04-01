@@ -19,14 +19,17 @@ if not os.getenv("OPENAI_API_KEY"):
     os.environ["OPENAI_API_KEY"] = "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"
 
 # Streamlit UI
-st.title("🔹 AI-Powered Sales Outreach Generator")
+st.title("🔹 AI-Powered Email Outreach Generator")
 
 # Input email address
 email_address = st.text_input(" Enter an Email Address:")
+position = st.text_input(" Enter a position:")
+department = st.text_input(" Enter a department:")
 
 def extract_company_from_email(email):
     match = re.search(r"@([a-zA-Z0-9-]+)\.", email)
     return match.group(1).upper() if match else "Unknown"
+
 
 def serper_search(query):
     """Search for company details using SERPER API."""
@@ -100,7 +103,7 @@ if email_address:
     email_generation_agent = autogen.AssistantAgent(
         name="Email_Generation_Agent",
         llm_config={"model": "gpt-3.5-turbo", "temperature": 0.7},
-        system_message="Generate a customized sales outreach email tailored to the company’s industry (e.g., education, manufacturing, finance) and its key challenges, as extracted from the provided content. The email should clearly articulate how our company’s solutions can address these challenges, drive efficiencies, and create value within the specific domain. Highlight measurable benefits, such as improved decision-making, cost savings, operational efficiency, or enhanced customer engagement, to make the message compelling and relevant to the recipient. Make it brief, concise and precise"
+        system_message="Generate a customized sales outreach email tailored to the company’s industry (e.g., education, manufacturing, finance) and its key challenges, as extracted from the provided content. The email should clearly articulate how our company’s solutions can address these challenges, drive efficiencies, and create value within the specific domain. Highlight measurable benefits, such as improved decision-making, cost savings, operational efficiency, or enhanced customer engagement, to make the message compelling and relevant to the recipient. Make it brief, concise and precise with 3 paragraphs."
     )
 
     with open(file_path, "r", encoding="utf-8") as file:
@@ -123,27 +126,45 @@ if email_address:
         summary_method="last_msg",
     )
 
-    email_task = f"""
+kavi_global_info = """
+    Kavi Global provides a range of data analytics and AI solutions to help companies overcome their challenges. Their services include:
+    - Business Intelligence
+    - Data Engineering
+    - Data Management
+    - Data Science & AI
+    - Internet of Things (IoT)
+    - Intelligent Apps
+    - Managed Services
+
+    Kavi Global helps companies optimize processes, identify opportunities, and address potential challenges with confidence. They offer solutions such as KPI development, interactive dashboards, self-service BI, visual exploration, mobile BI, embedded BI, and advanced custom visualization.
+    """
+
+email_task = f"""
     Generate a customized sales outreach email for {company_name} based on the extracted content.
     Use these company insights:
     {company_info_result.summary}
-    Emphasize how our analytics solutions provide value.
+    Tailor the email to the recipient's position: {position} and department: {department}.
+
+    Emphasize how Kavi Global's analytics solutions provide value:
+    {kavi_global_info}
+
+    Targeting: {position} in {department}
     """
-    email_result = user_proxy.initiate_chat(
+email_result = user_proxy.initiate_chat(
         recipient=email_generation_agent,
         message=email_task,
         max_turns=2,
         summary_method="last_msg",
     )
 
-    # Display generated email
-    st.subheader(f"📧 AI-Generated Sales Outreach Email for {company_name}:")
-    if isinstance(email_result.summary, str):
-        st.markdown(email_result.summary)  
-    elif isinstance(email_result.summary, dict) and "output" in email_result.summary:
-        st.markdown(email_result.summary["output"])  
-    else:
-        st.error("❌ Could not retrieve the email content. Please try again.")
+# Display generated email
+st.subheader(f"📧 AI-Generated Sales Outreach Email for {company_name}:")
+if isinstance(email_result.summary, str):
+    st.markdown(email_result.summary)
+elif isinstance(email_result.summary, dict) and "output" in email_result.summary:
+    st.markdown(email_result.summary["output"])
+else:
+    st.error("❌ Could not retrieve the email content. Please try again.")
 
     # Save generated email
     email_file_path = f"sales_outreach_{company_name.lower()}.txt"
