@@ -61,9 +61,10 @@ def extract_full_page_content(url):
         st.error(f"⚠️ Error fetching {url}: {e}")
         return ""
 
+# Ensure email_address is provided
 if email_address:
-    # Extract company name from email
-    company_name = extract_company_from_email(email_address)
+    # Initialize company_name with a default value
+    company_name = extract_company_from_email(email_address) or "Unknown"
     st.write(f" **Extracted Company**: `{company_name}`")
 
     # Search query
@@ -103,7 +104,7 @@ if email_address:
     email_generation_agent = autogen.AssistantAgent(
         name="Email_Generation_Agent",
         llm_config={"model": "gpt-3.5-turbo", "temperature": 0.7},
-        system_message="Generate a customized sales outreach email tailored to the company’s industry (e.g., education, manufacturing, finance) and its key challenges, as extracted from the provided content. The email should clearly articulate how our company’s solutions can address these challenges, drive efficiencies, and create value within the specific domain. Highlight measurable benefits, such as improved decision-making, cost savings, operational efficiency, or enhanced customer engagement, to make the message compelling and relevant to the recipient. Make it brief, concise and precise with 3 paragraphs."
+        system_message="Generate a casual and friendly sales outreach email tailored to the company’s industry (e.g., education, manufacturing, finance) and its key challenges, as extracted from the provided content. The email should feel conversational and approachable while clearly articulating how our company’s solutions can address these challenges, drive efficiencies, and create value. Highlight measurable benefits, such as improved decision-making, cost savings, operational efficiency, or enhanced customer engagement, but keep the tone light and engaging. Make it brief, concise, and easy to read with 3 paragraphs."
     )
 
     with open(file_path, "r", encoding="utf-8") as file:
@@ -126,7 +127,7 @@ if email_address:
         summary_method="last_msg",
     )
 
-kavi_global_info = """
+    kavi_global_info = """
     Kavi Global provides a range of data analytics and AI solutions to help companies overcome their challenges. Their services include:
     - Business Intelligence
     - Data Engineering
@@ -139,7 +140,7 @@ kavi_global_info = """
     Kavi Global helps companies optimize processes, identify opportunities, and address potential challenges with confidence. They offer solutions such as KPI development, interactive dashboards, self-service BI, visual exploration, mobile BI, embedded BI, and advanced custom visualization.
     """
 
-email_task = f"""
+    email_task = f"""
     Generate a customized sales outreach email for {company_name} based on the extracted content.
     Use these company insights:
     {company_info_result.summary}
@@ -150,21 +151,21 @@ email_task = f"""
 
     Targeting: {position} in {department}
     """
-email_result = user_proxy.initiate_chat(
+    email_result = user_proxy.initiate_chat(
         recipient=email_generation_agent,
         message=email_task,
         max_turns=2,
         summary_method="last_msg",
     )
 
-# Display generated email
-st.subheader(f"📧 AI-Generated Sales Outreach Email for {company_name}:")
-if isinstance(email_result.summary, str):
-    st.markdown(email_result.summary)
-elif isinstance(email_result.summary, dict) and "output" in email_result.summary:
-    st.markdown(email_result.summary["output"])
-else:
-    st.error("❌ Could not retrieve the email content. Please try again.")
+    # Display generated email
+    st.subheader(f"📧 AI-Generated Sales Outreach Email for {company_name}:")
+    if isinstance(email_result.summary, str):
+        st.markdown(email_result.summary)
+    elif isinstance(email_result.summary, dict) and "output" in email_result.summary:
+        st.markdown(email_result.summary["output"])
+    else:
+        st.error("❌ Could not retrieve the email content. Please try again.")
 
     # Save generated email
     email_file_path = f"sales_outreach_{company_name.lower()}.txt"
@@ -178,3 +179,5 @@ else:
         file_name=email_file_path,
         mime="text/plain"
     )
+else:
+    st.warning("⚠️ Please provide an email address to proceed.")
