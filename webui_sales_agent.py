@@ -108,7 +108,7 @@ if email_address:
             "Generate a casual yet professional outreach email tailored to the company’s industry, position, and department. "
             "(e.g., education, manufacturing, finance) and its key challenges, as extracted from the provided content. "
             "The email should feel approachable and engaging while maintaining a professional tone. "
-            "Start the email with 'Dear [name],' where [name] is the recipient's name. "
+            "Start the email with a short, engaging subject line (e.g., 'Excited to Connect with [Company Name]!') followed by 'Dear [name],' where [name] is the recipient's name. "
             "Clearly articulate how Kavi Global solutions can address these challenges, drive efficiencies, and create value. "
             "Highlight measurable benefits, such as improved decision-making, cost savings, operational efficiency, or enhanced customer engagement. "
             "Keep the email concise, easy to read, and structured in 3 paragraphs. "
