@@ -104,7 +104,16 @@ if email_address:
     email_generation_agent = autogen.AssistantAgent(
         name="Email_Generation_Agent",
         llm_config={"model": "gpt-3.5-turbo", "temperature": 0.7},
-        system_message="Generate a casual and friendly sales outreach email tailored to the company’s industry (e.g., education, manufacturing, finance) and its key challenges, as extracted from the provided content. The email should feel conversational and approachable while clearly articulating how our company’s solutions can address these challenges, drive efficiencies, and create value. Highlight measurable benefits, such as improved decision-making, cost savings, operational efficiency, or enhanced customer engagement, but keep the tone light and engaging. Make it brief, concise, and easy to read with 3 paragraphs."
+        system_message=(
+            "Generate a casual yet professional outreach email tailored to the company’s industry, position, and department. "
+            "(e.g., education, manufacturing, finance) and its key challenges, as extracted from the provided content. "
+            "The email should feel approachable and engaging while maintaining a professional tone. "
+            "Start the email with 'Dear [name],' where [name] is the recipient's name. "
+            "Clearly articulate how Kavi Global solutions can address these challenges, drive efficiencies, and create value. "
+            "Highlight measurable benefits, such as improved decision-making, cost savings, operational efficiency, or enhanced customer engagement. "
+            "Keep the email concise, easy to read, and structured in 3 paragraphs. "
+            "Ensure the email does not exceed 150 words."
+        )
     )
 
     with open(file_path, "r", encoding="utf-8") as file:
