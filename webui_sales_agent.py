@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 from autogen import AssistantAgent, UserProxyAgent
 import autogen
+import PyPDF2
 
 # Load environment variables
 load_dotenv(".env")
@@ -21,15 +22,16 @@ if not os.getenv("OPENAI_API_KEY"):
 # Streamlit UI
 st.title("🔹 AI-Powered Email Outreach Generator")
 
-# Input email address
-email_address = st.text_input(" Enter an Email Address:")
-position = st.text_input(" Enter a position:")
-department = st.text_input(" Enter a department:")
+# Input fields
+email_address = st.text_input("Enter an Email Address:")
+name = st.text_input("Enter the Recipient's Name (optional):")
+position = st.text_input("Enter a Position (optional):")
+department = st.text_input("Enter a Department (optional):")
 
 def extract_company_from_email(email):
+    """Extract the company name from the email address and format it properly."""
     match = re.search(r"@([a-zA-Z0-9-]+)\.", email)
-    return match.group(1).upper() if match else "Unknown"
-
+    return match.group(1).capitalize() if match else "Unknown"
 
 def serper_search(query):
     """Search for company details using SERPER API."""
@@ -60,12 +62,35 @@ def extract_full_page_content(url):
     except requests.exceptions.RequestException as e:
         st.error(f"⚠️ Error fetching {url}: {e}")
         return ""
+    
+# File uploader for PDF
+uploaded_pdf = st.file_uploader("Upload a PDF file (optional)", type=["pdf"])
+
+def extract_text_from_pdf(uploaded_pdf):
+    """Extract text content from the uploaded PDF."""
+    pdf_content = ""
+    try:
+        pdf_reader = PyPDF2.PdfReader(uploaded_pdf)
+        for page in pdf_reader.pages:
+            pdf_content += page.extract_text()
+    except Exception as e:
+        st.error(f"⚠️ Error reading PDF file: {e}")
+    return pdf_content
 
 # Ensure email_address is provided
 if email_address:
+    # Initialize email_result with a default value
+    email_result = None
+
     # Initialize company_name with a default value
     company_name = extract_company_from_email(email_address) or "Unknown"
-    st.write(f" **Extracted Company**: `{company_name}`")
+    st.write(f"**Extracted Company**: `{company_name}`")
+
+    # Determine the greeting
+    if name.strip():
+        greeting = f"Hi {name},"
+    else:
+        greeting = "Hi!"
 
     # Search query
     search_query = f"{company_name} company overview, industry, and challenges"
@@ -74,7 +99,7 @@ if email_address:
     full_text = ""
     for result in search_results:
         title, url, snippet = result["title"], result["url"], result["snippet"]
-        st.write(f" **Extracting content from:** {title} ({url})")
+        st.write(f"**Extracting content from:** {title} ({url})")
 
         page_content = extract_full_page_content(url)
         full_text += f"\n\n=== {title} ===\nURL: {url}\nSnippet: {snippet}\n\n{page_content}\n\n"
@@ -85,7 +110,7 @@ if email_address:
     with open(file_path, "w", encoding="utf-8") as file:
         file.write(full_text)
 
-    st.success(f" **Extracted content saved:** `{file_path}`")
+    st.success(f"**Extracted content saved:** `{file_path}`")
 
     # AI Agents
     user_proxy = autogen.UserProxyAgent(
@@ -105,14 +130,12 @@ if email_address:
         name="Email_Generation_Agent",
         llm_config={"model": "gpt-3.5-turbo", "temperature": 0.7},
         system_message=(
-            "Generate a casual yet professional outreach email tailored to the company’s industry, position, and department. "
-            "(e.g., education, manufacturing, finance) and its key challenges, as extracted from the provided content. "
-            "The email should feel approachable and engaging while maintaining a professional tone. "
-            "Start the email with a short, engaging subject line (e.g., 'Excited to Connect with [Company Name]!') followed by 'Dear [name],' where [name] is the recipient's name. "
+            "Generate a casual yet professional outreach email tailored to the company’s industry and its key challenges, "
+            "as extracted from the provided content. The email should feel approachable and engaging while maintaining a professional tone. "
+            "Start the email with a short, engaging subject line (e.g., 'Excited to Connect with [Company Name]!') followed by 'Hi [name],' where [name] is the recipient's name. "
             "Clearly articulate how Kavi Global solutions can address these challenges, drive efficiencies, and create value. "
             "Highlight measurable benefits, such as improved decision-making, cost savings, operational efficiency, or enhanced customer engagement. "
-            "Keep the email concise, easy to read, and structured in 3 paragraphs. "
-            "Ensure the email does not exceed 150 words."
+            "Keep the email concise, easy to read, and structured in 3 paragraphs. Ensure the email does not exceed 150 words."
         )
     )
 
@@ -126,7 +149,7 @@ if email_address:
 
     Insights needed:
     1. The **industry sector** of {company_name}
-    2. Key **industry trends and challenge in the industrys**
+    2. Key **industry trends and challenges in the industry**
     3. How **analytics solutions** can help address these challenges.
     """
     company_info_result = user_proxy.initiate_chat(
@@ -136,57 +159,72 @@ if email_address:
         summary_method="last_msg",
     )
 
-    kavi_global_info = """
-    Kavi Global provides a range of data analytics and AI solutions to help companies overcome their challenges. Their services include:
-    - Business Intelligence
-    - Data Engineering
-    - Data Management
-    - Data Science & AI
-    - Internet of Things (IoT)
-    - Intelligent Apps
-    - Managed Services
-
-    Kavi Global helps companies optimize processes, identify opportunities, and address potential challenges with confidence. They offer solutions such as KPI development, interactive dashboards, self-service BI, visual exploration, mobile BI, embedded BI, and advanced custom visualization.
-    """
-
-    email_task = f"""
-    Generate a customized sales outreach email for {company_name} based on the extracted content.
-    Use these company insights:
-    {company_info_result.summary}
-    Tailor the email to the recipient's position: {position} and department: {department}.
-
-    Emphasize how Kavi Global's analytics solutions provide value:
-    {kavi_global_info}
-
-    Targeting: {position} in {department}
-    """
-    email_result = user_proxy.initiate_chat(
-        recipient=email_generation_agent,
-        message=email_task,
-        max_turns=2,
-        summary_method="last_msg",
-    )
-
-    # Display generated email
-    st.subheader(f"📧 AI-Generated Sales Outreach Email for {company_name}:")
-    if isinstance(email_result.summary, str):
-        st.markdown(email_result.summary)
-    elif isinstance(email_result.summary, dict) and "output" in email_result.summary:
-        st.markdown(email_result.summary["output"])
+    if not company_info_result or not hasattr(company_info_result, "summary"):
+        st.error("❌ Could not retrieve company insights. Please try again.")
     else:
-        st.error("❌ Could not retrieve the email content. Please try again.")
+        kavi_global_info = """
+        Kavi Global provides a range of data analytics and AI solutions to help companies overcome their challenges. Their services include:
+        - Business Intelligence
+        - Data Engineering
+        - Data Management
+        - Data Science & AI
+        - Internet of Things (IoT)
+        - Intelligent Apps
+        - Managed Services
 
-    # Save generated email
-    email_file_path = f"sales_outreach_{company_name.lower()}.txt"
-    with open(email_file_path, "w", encoding="utf-8") as file:
-        file.write(email_result.summary)
+        Kavi Global helps companies optimize processes, identify opportunities, and address potential challenges with confidence. They offer solutions such as KPI development, interactive dashboards, self-service BI, visual exploration, mobile BI, embedded BI, and advanced custom visualization.
+        """
 
-    # Download button for email
-    st.download_button(
-        label="⬇️ Download Sales Outreach Email",
-        data=email_result.summary,
-        file_name=email_file_path,
-        mime="text/plain"
-    )
+        # Handle optional position and department
+        position_text = f"Tailor the email to the recipient's position: {position}" if position.strip() else ""
+        department_text = f"and department: {department}" if department.strip() else ""
+
+        # Generate the email task
+        email_task = f"""
+        Generate a customized sales outreach email for {company_name} based on the extracted content.
+        Use these company insights:
+        {company_info_result.summary}
+
+        {position_text} {department_text}
+
+        Emphasize how Kavi Global's analytics solutions provide value:
+        {kavi_global_info}
+
+        Greeting: {greeting}
+
+        Closing: Please let me know if you have 15 minutes to talk next week. I’d love to discuss how Kavi Global can help your team overcome challenges and achieve your goals.
+        """
+
+        # Call the email generation agent
+        email_result = user_proxy.initiate_chat(
+            recipient=email_generation_agent,
+            message=email_task,
+            max_turns=2,
+            summary_method="last_msg",
+        )
+
+        # Display generated email
+        st.subheader(f"📧 AI-Generated Outreach Email for {company_name}:")
+        if hasattr(email_result, "summary") and isinstance(email_result.summary, str):
+            st.markdown(email_result.summary)
+        elif hasattr(email_result, "summary") and isinstance(email_result.summary, dict) and "output" in email_result.summary:
+            st.markdown(email_result.summary["output"])
+        else:
+            st.error("❌ Could not retrieve the email content. Please try again.")
+
+        # Save generated email
+        if email_result and hasattr(email_result, "summary"):
+            email_content = email_result.summary if isinstance(email_result.summary, str) else email_result.summary.get("output", "")
+            email_file_path = f"sales_outreach_{company_name.lower()}.txt"
+            with open(email_file_path, "w", encoding="utf-8") as file:
+                file.write(email_content)
+
+            # Download button for email
+            st.download_button(
+                label="⬇️ Download Sales Outreach Email",
+                data=email_content,
+                file_name=email_file_path,
+                mime="text/plain"
+            )
 else:
     st.warning("⚠️ Please provide an email address to proceed.")
