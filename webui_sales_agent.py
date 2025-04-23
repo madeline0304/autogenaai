@@ -12,12 +12,12 @@ import PyPDF2
 # Load environment variables
 load_dotenv(".env")
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 SERPER_API_URL = "https://google.serper.dev/search"
 SERPER_API_KEY = "12c9456f7134b76c22d89015fde14eef33cfd208"
 
 if not os.getenv("OPENAI_API_KEY"):
-    os.environ["OPENAI_API_KEY"] = "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"
+    os.environ["OPENAI_API_KEY"] = "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"
 
 # Streamlit UI
 st.title("🔹 AI-Powered Email Outreach Generator")
