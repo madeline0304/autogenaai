@@ -19,6 +19,9 @@ This project is an AI-powered tool designed to generate customized sales outreac
 - BeautifulSoup4
 - python-dotenv
 - autogen
+- PyPDF2
+- AssistantAgent
+- UserProxyAgent
 
 ## Installation
 
